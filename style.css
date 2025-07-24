@@ -1,0 +1,221 @@
+/* Reset & global settings */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  width: 100%;
+  background-color: #2e2e2e;
+  font-family: 'Segoe UI', sans-serif;
+  color: #eee;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  overflow-x: hidden;
+}
+
+/* ===== Center content & pin navbar ===== */
+body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Glass-morphism horizontal navbar (full-width on desktop) */
+.nav-glass {
+  display: flex;
+  overflow-x: auto;
+  background: rgba(31,31,31,0.9);
+  backdrop-filter: blur(8px);
+  padding: 10px 20px;
+  gap: 16px;
+  white-space: nowrap;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  width: 100%;
+}
+
+@media (min-width: 600px) {
+  .nav-glass {
+    justify-content: center;
+  }
+}
+
+.nav-glass a {
+  color: #eee;
+  text-decoration: none;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.nav-glass a:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+/* Main page layout container — pushed below navbar */
+.card-container {
+  width: 100%;
+  max-width: 500px;
+  padding: 20px;
+  margin-top: 60px;
+}
+
+.list-glass {
+  background: rgba(60,60,60,0.9);
+  backdrop-filter: blur(8px);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+.list-glass h2 {
+  font-size: 1.2rem;
+  margin-bottom: 12px;
+  color: #fff;
+}
+
+.timer {
+  font-size: 0.95rem;
+  color: #ddd;
+  margin: 8px 0 12px;
+}
+
+.stock-list {
+  list-style: none;
+  margin-top: 4px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.stock-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(200,200,200,0.15);
+}
+
+.stock-list li:last-child {
+  border-bottom: none;
+}
+
+.stock-list li .icon {
+  width: 24px;
+  height: 24px;
+  margin-right: 8px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.qty, .status {
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.weather-desc {
+  font-size: 0.85rem;
+  color: #ccc;
+  margin-top: 4px;
+}
+
+.collapse-btn {
+  cursor: pointer;
+  background: rgba(255,255,255,0.1);
+  border: none;
+  border-radius: 10px;
+  padding: 8px 14px;
+  color: #eee;
+  font-weight: 600;
+  transition: background 0.2s ease;
+  margin-bottom: 14px;
+  user-select: none;
+}
+
+.collapse-btn:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+#welcome-box.hidden {
+  display: none;
+}
+
+.fade-in {
+  animation: fadeIn 0.6s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.footer {
+  width: 100%;
+  max-width: 500px;
+  text-align: center;
+  color: #888;
+  font-size: 0.85rem;
+  margin: 30px 0 10px;
+}
+
+.footer a {
+  color: #aaa;
+  text-decoration: underline;
+}
+
+/* ── Current Event page styling ── */
+#currentevent-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+#currentevent-content .icon {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+#currentevent-content .name {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #fff;
+}
+
+/* ─────────────────────────────── */
+/* CAPTCHA PAGE STYLING STARTS HERE */
+/* ─────────────────────────────── */
+
+body.captcha-page {
+  background-color: #f0f0f0;
+  display: flex !important;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+/* Slightly larger reCAPTCHA */
+.g-recaptcha {
+  width: 350px !important;
+  height: 90px !important;
+  margin: 0 auto !important;
+}
+
+.g-recaptcha iframe {
+  width: 350px !important;
+  height: 90px !important;
+}
