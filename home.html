@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}Home{% endblock %}
+
+{% block content %}
+  <div class="list-glass" style="text-align:center; padding: 40px 20px; position: relative;">
+    <h2 style="font-size:1.6rem; margin-bottom:10px;">
+      Welcome to Grow a Garden Tracker
+    </h2>
+    <p style="margin:0 auto 20px; max-width:420px; font-size:0.9rem; color:#ccc">
+      Track real-time <strong>stock updates</strong>,
+      <strong>weather conditions</strong>,
+      and <strong>event news</strong> for <em>Grow a Garden</em>.  
+      Use the navigation above to explore each category.
+    </p>
+
+    <ul class="stock-list" style="margin-top:20px; list-style:none; padding:0;">
+      <li><span class="name">🌱 <strong>Seed Stock</strong></span></li>
+      <li><span class="name">⚙️ <strong>Gear Stock</strong></span></li>
+      <li><span class="name">🥚 <strong>Egg Stock</strong></span></li>
+      <li><span class="name">🎨 <strong>Cosmetic Stock</strong></span></li>
+      <li><span class="name">🎉 <strong>Event Stock</strong></span></li>
+      <li><span class="name">🛍️ <strong>Traveling Merchant</strong></span></li>
+      <li><span class="name">🌦️ <strong>Weather Cycle</strong></span></li>
+      <li><span class="name">📣 <strong>Jandel Announcements</strong></span></li>
+      <li><span class="name">🕑 <strong>Current Event</strong></span></li>
+    </ul>
+
+    <!-- Visitor counter (unique visits only) -->
+    <p style="
+         margin-top: 30px;
+         font-size: 0.9rem;
+         color: #ccc;
+         background: rgba(255,255,255,0.1);
+         border-radius: 8px;
+         padding: 8px 12px;
+         display: inline-block;
+         ">
+      👥 {{ visitor_count }} people visited this site
+    </p>
+  </div>
+
+  <div style="margin-top:30px; text-align:center; font-size:0.85rem; color:#aaa;">
+    Made with 💜 by <strong>.John2032</strong><br>
+    Powered by <a href="https://discord.gg/growagardenapi" target="_blank"
+      style="color:#6cb6ff; text-decoration:underline;">Jostudio API</a>
+  </div>
+
+  <footer style="text-align:center; font-size:0.8rem; color:#ccc; padding:30px 10px 50px;">
+    <div><strong>Contact & Support</strong></div>
+    <div>• Discord:
+      <a href="https://discord.gg/kXp8THfB9J" target="_blank"
+         style="color:#6cb6ff; text-decoration:underline;">
+        Join Support Server
+      </a>
+    </div>
+    <br>
+    <div>© 2025 GagTracker. All rights reserved.</div>
+  </footer>
+{% endblock %}
