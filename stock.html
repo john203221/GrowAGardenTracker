@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+{% block title %}Stock{% endblock %}
+
+{% block content %}
+<div class="list-glass" style="margin-top:60px">
+  <h2>🌱 Seed Stock</h2>
+  <ul id="seed_stock" class="stock-list">Loading…</ul>
+</div>
+
+<div class="list-glass">
+  <h2>⚙️ Gear Stock</h2>
+  <ul id="gear_stock" class="stock-list">Loading…</ul>
+</div>
+
+<div class="list-glass">
+  <h2>🥚 Egg Stock</h2>
+  <ul id="egg_stock" class="stock-list">Loading…</ul>
+</div>
+
+<div class="list-glass">
+  <h2>🎨 Cosmetic Stock</h2>
+  <ul id="cosmetic_stock" class="stock-list">Loading…</ul>
+</div>
+
+<div class="list-glass">
+  <h2>🎉 Event Stock</h2>
+  <ul id="eventshop_stock" class="stock-list">Loading…</ul>
+</div>
+
+<script>
+async function loadStock(type) {
+  const [stockRes, infoRes] = await Promise.all([
+    fetch('/api/stock'),
+    fetch('/api/info')
+  ]);
+  const stockData = await stockRes.json();
+  const infoMap = await infoRes.json();
+  const ul = document.getElementById(type);
+  const rawItems = stockData[type] || [];
+  ul.innerHTML = "";
+
+  // 🧠 Combine duplicates for egg_stock
+  let items;
+  if (type === "egg_stock") {
+    const grouped = {};
+    for (const item of rawItems) {
+      const id = item.item_id;
+      if (!grouped[id]) {
+        grouped[id] = {
+          ...item,
+          quantity: 0,
+        };
+      }
+      grouped[id].quantity += item.quantity || 1;
+    }
+    items = Object.values(grouped);
+  } else {
+    items = rawItems.filter(i => i.quantity > 0);
+  }
+
+  if (!items.length) {
+    ul.innerHTML = "<li><p>No items found.</p></li>";
+    return;
+  }
+
+  items.forEach((item, idx) => {
+    const info = infoMap[item.item_id] || {};
+    const isSeed = type === "seed_stock";
+    const isGear = type === "gear_stock";
+    const desc = (isSeed || isGear) ? (info.description || "") : "";
+    const rarity = (isSeed || isGear) ? (info.rarity || "") : "";
+    const endUnix = item.end_date_unix > 0 ? item.end_date_unix : 0;
+
+    const li = document.createElement("li");
+    li.innerHTML = `
+      <img class="icon" src="${item.icon}" />
+      <div style="flex:1">
+        <div><strong>${item.display_name}</strong> ×${item.quantity}</div>
+        <div style="font-size:0.8rem;color:rgba(255,255,255,0.7)">
+          ${rarity ? `Rarity: ${rarity}<br>` : ""}
+          ${desc ? `${desc}<br>` : ""}
+          <span class="timer" id="${type}_timer_${idx}"></span>
+        </div>
+      </div>
+    `;
+    ul.appendChild(li);
+
+    if (endUnix > 0) {
+      startTimer(endUnix, document.getElementById(`${type}_timer_${idx}`));
+    }
+  });
+}
+
+function startTimer(endUnix, el) {
+  const int = setInterval(() => {
+    const diffMs = endUnix * 1000 - Date.now();
+    if (diffMs <= 0) {
+      clearInterval(int);
+      el.textContent = '';
+      return;
+    }
+    const mins = Math.floor(diffMs / 60000);
+    const secs = Math.floor((diffMs % 60000) / 1000);
+    el.textContent = `Ends in ${mins}m ${secs}s`;
+  }, 1000);
+}
+
+// Load each stock section
+[
+  "seed_stock",
+  "gear_stock",
+  "egg_stock",
+  "cosmetic_stock",
+  "eventshop_stock"
+].forEach(type => {
+  loadStock(type);
+  setInterval(() => loadStock(type), 60000);
+});
+</script>
+{% endblock %}
