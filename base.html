@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  {% set full_host = request.host_url.rstrip('/') %}
+  {% set domain = request.host %}
+
+  <!-- HTML Meta Tags -->
+  <title>{% block title %}Grow a Garden Tracker (GagTracker){% endblock %}</title>
+  <meta name="description" content="Track live stock, weather, traveling merchant, event, jandel messages for Roblox Grow a Garden.">
+
+  {% if "publicvm.com" in domain %}
+    {% set site_url = "https://growagardentracker.publicvm.com" %}
+  {% elif "onpella.app" in domain %}
+    {% set site_url = "https://peachpests.onpella.app/" %}
+  {% elif "kirk.replit.dev" in domain %}
+    {% set site_url = full_host %}
+  {% else %}
+    {% set site_url = full_host %}
+  {% endif %}
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:url" content="{{ site_url }}">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Grow a Garden Tracker (GagTracker)">
+  <meta property="og:description" content="Track live stock, weather, traveling merchant, event, jandel messages for Roblox Grow a Garden.">
+  <meta property="og:image" content="https://opengraph.b-cdn.net/production/images/d5e7753f-cc77-4723-86b2-a8d0a1276bc1.png">
+
+  <!-- Twitter Meta Tags -->
+  <meta name="twitter:card" content="summary">
+  <meta property="twitter:domain" content="{{ domain }}">
+  <meta property="twitter:url" content="{{ site_url }}">
+  <meta name="twitter:title" content="Grow a Garden Tracker (GagTracker)">
+  <meta name="twitter:description" content="Track live stock, weather, traveling merchant, event, jandel messages for Roblox Grow a Garden.">
+  <meta name="twitter:image" content="https://opengraph.b-cdn.net/production/images/d5e7753f-cc77-4723-86b2-a8d0a1276bc1.png">
+
+  <meta name="keywords" content="grow a garden tracker, roblox, stock, weather, merchant, jandel, event" />
+  <link rel="canonical" href="{{ site_url }}{{ request.path }}">
+  <meta name="theme-color" content="#1e1e1e" />
+
+  <!-- Styles & Scripts -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+</head>
+
+<body class="{% if request.path == '/captcha' %}captcha-page{% endif %}">
+
+  <!-- Navbar -->
+  <div class="nav-glass" style="display: flex; align-items: center; gap: 16px;">
+    <!-- Music toggle button -->
+    <button id="music-toggle-btn" title="Toggle Music" style="
+      background: none; border: none; cursor: pointer;
+      color: #fff; padding: 6px 12px; display: flex;
+      align-items: center; gap: 6px; font-size: 0.9rem;
+    ">
+      <svg id="music-icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" height="20" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 3v10.55a3.955 3.955 0 0 0-2-.55 4 4 0 1 0 4 4V7h4V3h-6z"/>
+      </svg>
+      <span id="music-label">Play Music</span>
+    </button>
+
+    <!-- Navigation Links -->
+    <a href="{{ url_for('home') }}">Home</a>
+    <a href="{{ url_for('stock') }}">Stock</a>
+    <a href="{{ url_for('weather') }}">Weather</a>
+    <a href="{{ url_for('traveling') }}">Traveling Merchant</a>
+    <a href="{{ url_for('announcement') }}">Announcement</a>
+    <a href="{{ url_for('currentevent') }}">Current Event</a>
+  </div>
+
+  <!-- Main content -->
+  <div class="card-container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, msg in messages %}
+          <div class="flash {{ category }}">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </div>
+
+  <!-- Background music -->
+  <audio id="bg-music" src="{{ url_for('static', filename='audio/background.mp3') }}" loop preload="none"></audio>
+
+  {% block scripts %}
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const audio = document.getElementById('bg-music');
+      const toggleBtn = document.getElementById('music-toggle-btn');
+      const label = document.getElementById('music-label');
+      let isPlaying = false;
+
+      if (sessionStorage.getItem('music') === 'playing') {
+        audio.play().catch(() => {});
+        isPlaying = true;
+        label.textContent = 'Pause Music';
+      }
+
+      toggleBtn.addEventListener('click', () => {
+        if (isPlaying) {
+          audio.pause();
+          label.textContent = 'Play Music';
+          sessionStorage.setItem('music', 'paused');
+        } else {
+          audio.play().catch(() => {});
+          label.textContent = 'Pause Music';
+          sessionStorage.setItem('music', 'playing');
+        }
+        isPlaying = !isPlaying;
+      });
+    });
+  </script>
+
+  <!-- Notification logic -->
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      const NOTIF_KEY = "lastNotificationKey";
+      try {
+        const res = await fetch("/api/currentevent");
+        const { current } = await res.json();
+        if (!current) return;
+
+        const start = new Date();
+        start.setMinutes(current.start.minute, 0, 0);
+        if (start <= new Date()) start.setHours(start.getHours() + 1);
+        const eventKey = start.getTime().toString();
+
+        const lastShown = localStorage.getItem(NOTIF_KEY);
+        if (lastShown !== eventKey && Notification.permission === "granted") {
+          const mins = Math.ceil((start - new Date()) / 60000);
+          new Notification("Grow a Garden Tracker", {
+            body: `${current.name} starts in ${mins} m`,
+            icon: current.icon
+          });
+          localStorage.setItem(NOTIF_KEY, eventKey);
+        }
+      } catch (err) {
+        console.error("Notification check failed:", err);
+      }
+    });
+  </script>
+
+  <script type="module" src="{{ url_for('static', filename='js/currentevent-notifs.js') }}"></script>
+  {% endblock %}
+</body>
+</html>
