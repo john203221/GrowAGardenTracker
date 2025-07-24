@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% block title %}Announcement{% endblock %}
+
+{% block content %}
+  <div class="list-glass" id="announcement">
+    <h2>Jandel Announcement</h2>
+    <ul class="stock-list" id="announcement_list">Loading…</ul>
+    <div class="timer" id="announcement_timer"></div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const list = document.getElementById('announcement_list');
+  const timerEl = document.getElementById('announcement_timer');
+  let announcementAgoIntervals = {};
+
+  function renderAnnouncements(notes) {
+    list.innerHTML = '';
+    notes.forEach((note, index) => {
+      const li = document.createElement('li');
+      li.id = `announcement_${index}`;
+      li.innerHTML = `
+        <span>${note.message}</span>
+        <span class="posted" id="posted_ago_${index}"></span>
+      `;
+      list.appendChild(li);
+
+      const posted = note.timestamp;
+      const expire = note.end_date_unix || posted + 3600;
+
+      function updateAgo() {
+        const now = Math.floor(Date.now() / 1000);
+        if (now >= expire) {
+          clearInterval(announcementAgoIntervals[index]);
+          document.getElementById(`announcement_${index}`)?.remove();
+          if (!list.children.length) {
+            list.innerHTML = '<li><p>No announcements yet</p></li>';
+            timerEl.textContent = '';
+          }
+          return;
+        }
+
+        const diff = now - posted;
+        const text = diff < 60
+          ? 'Posted moments ago'
+          : `Posted ${Math.floor(diff / 60)} mins ago`;
+        document.getElementById(`posted_ago_${index}`).textContent = text;
+      }
+
+      updateAgo();
+      announcementAgoIntervals[index] = setInterval(updateAgo, 60000);
+
+      // Also add to master timer list to auto clean up when expired
+      startTimerIfFuture(expire, timerEl, () => {
+        document.getElementById(`announcement_${index}`)?.remove();
+        clearInterval(announcementAgoIntervals[index]);
+        if (!list.children.length) {
+          list.innerHTML = '<li><p>No announcements yet</p></li>';
+          timerEl.textContent = '';
+        }
+      });
+    });
+  }
+
+  async function loadAnnouncements() {
+    const res = await fetch('/api/stock');
+    const data = await res.json();
+    const notes = (data.notification || []).filter(n => n.message);
+
+    Object.values(announcementAgoIntervals).forEach(clearInterval);
+    announcementAgoIntervals = {};
+
+    if (!notes.length) {
+      list.innerHTML = '<li><p>No announcements yet</p></li>';
+      timerEl.textContent = '';
+      return;
+    }
+
+    renderAnnouncements(notes);
+  }
+
+  loadAnnouncements();
+  setInterval(loadAnnouncements, 300000); // refresh every 5 min
+</script>
+{% endblock %}
