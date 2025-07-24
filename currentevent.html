@@ -1,0 +1,100 @@
+<!-- templates/currentevent.html -->
+{% extends 'base.html' %}
+
+{% block title %}Current Event{% endblock %}
+
+{% block content %}
+  <div class="list-glass">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <h2>Current Event</h2>
+      <button id="notif-toggle" class="collapse-btn" style="font-size:0.9rem; padding:4px 8px;">
+        🔔 …
+      </button>
+    </div>
+
+    <div id="currentevent-content" style="text-align:center; margin-top:12px;">
+      <p>Loading…</p>
+    </div>
+
+    <div class="timer" id="countdown" style="text-align:center; margin-top:12px;">
+      &nbsp;
+    </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+<script type="module">
+  import { startCurrentEventNotifs } from '{{ url_for("static", filename="js/currentevent-notifs.js") }}';
+
+  const toggleBtn = document.getElementById('notif-toggle');
+  let notifEnabled = localStorage.getItem('cg_notifs') !== 'false';
+
+  function updateToggleUI() {
+    toggleBtn.textContent = notifEnabled ? '🔔 On' : '🔕 Off';
+  }
+
+  toggleBtn.addEventListener('click', async () => {
+    notifEnabled = !notifEnabled;
+    localStorage.setItem('cg_notifs', notifEnabled);
+    updateToggleUI();
+
+    if (notifEnabled && Notification.permission === 'default') {
+      const permission = await Notification.requestPermission();
+      console.log('[Notification] Permission:', permission);
+      if (permission === 'granted') {
+        startCurrentEventNotifs();
+      }
+    }
+  });
+
+  updateToggleUI();
+
+  // On-page fetch & countdown (unchanged from before)
+  const countdownEl = document.getElementById('countdown');
+  let eventMin = null;
+
+  function nextStartDate(minute) {
+    const now = new Date();
+    const d   = new Date(now);
+    d.setMinutes(minute, 0, 0);
+    if (d <= now) d.setHours(d.getHours() + 1);
+    return d;
+  }
+
+  function updateCountdown() {
+    if (eventMin == null) return;
+    const now   = new Date();
+    const start = nextStartDate(eventMin);
+    const diff  = start - now;
+    if (diff <= 0) {
+      countdownEl.textContent = 'Started!';
+      return 0;
+    }
+    const mins = Math.ceil(diff / 60000);
+    countdownEl.textContent = `Starts in ${mins} m`;
+    return mins;
+  }
+
+  async function fetchAndRender() {
+    try {
+      const res     = await fetch('/api/currentevent');
+      const payload = await res.json();
+      const current = payload.current;
+      eventMin      = current.start.minute;
+
+      document.getElementById('currentevent-content').innerHTML = `
+        <img src="${current.icon}" alt="${current.name}" class="icon">
+        <div class="name" style="margin-top:8px;">${current.name}</div>
+      `;
+
+      updateCountdown();
+    } catch (err) {
+      console.error('Error in fetchAndRender():', err);
+    }
+  }
+
+  fetchAndRender();
+  setInterval(fetchAndRender, 60000);
+  setInterval(updateCountdown, 60000);
+</script>
+{% endblock %}
