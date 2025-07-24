@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% block title %}Weather{% endblock %}
+
+{% block content %}
+<div class="list-glass" style="margin-top:60px">
+  <h2>☁️ Weather</h2>
+  <ul id="weather-list" class="stock-list"></ul>
+</div>
+
+<script>
+async function loadWeather() {
+  const [weatherRes, infoRes] = await Promise.all([
+    fetch('/api/weather'),
+    fetch('/api/info')
+  ]);
+  const weatherData = await weatherRes.json();
+  const infoMap     = await infoRes.json();
+  const ul          = document.getElementById("weather-list");
+  ul.innerHTML      = "";
+
+  const nowUnix = Math.floor(Date.now() / 1000);
+  const arr = Array.isArray(weatherData.weather)
+    ? weatherData.weather
+    : [weatherData.weather];
+
+  // Only those flagged active AND whose time window contains "now"
+  const valid = arr.filter(w => {
+    if (!w.active) return false;
+    const endUnix = w.end_duration_unix > 0
+      ? w.end_duration_unix
+      : (w.start_duration_unix + w.duration);
+    return nowUnix >= w.start_duration_unix && nowUnix < endUnix;
+  });
+
+  if (valid.length === 0) {
+    ul.innerHTML = '<li><p>No active weather events.</p></li>';
+    return;
+  }
+
+  valid.forEach((w, i) => {
+    const desc = infoMap[w.weather_id]?.description || "";
+    const endUnix = w.end_duration_unix > 0
+      ? w.end_duration_unix
+      : (w.start_duration_unix + w.duration);
+
+    const li = document.createElement("li");
+    li.innerHTML = `
+      <img class="icon" src="${w.icon}" />
+      <span class="name">${w.weather_name}</span>
+      <span class="timer" id="weather_timer_${i}"></span>
+      <div class="weather-desc">${desc}</div>
+    `;
+    ul.appendChild(li);
+
+    startTimer(endUnix, li);
+  });
+}
+
+function startTimer(endUnix, li) {
+  const timerEl = li.querySelector(".timer");
+  const interval = setInterval(() => {
+    const diffMs = endUnix * 1000 - Date.now();
+
+    if (diffMs <= 0) {
+      clearInterval(interval);
+      li.remove();
+
+      const ul = document.getElementById("weather-list");
+      if (ul.children.length === 0) {
+        ul.innerHTML = '<li><p>No active weather events.</p></li>';
+      }
+      return;
+    }
+
+    const mins = Math.floor(diffMs / 60000);
+    const secs = Math.floor((diffMs % 60000) / 1000);
+    timerEl.textContent = `Ends in ${mins}m ${secs}s`;
+  }, 1000);
+}
+
+// initial load + refresh every minute
+loadWeather();
+setInterval(loadWeather, 60000);
+</script>
+{% endblock %}
