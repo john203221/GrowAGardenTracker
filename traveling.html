@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{% block title %}Traveling Merchant{% endblock %}
+
+{% block content %}
+<div class="list-glass" id="traveling_merchant">
+  <h2>Traveling Merchant</h2>
+  <div id="merchant-name" style="font-weight:600; margin-bottom:8px;">Loading…</div>
+  <ul class="stock-list" id="merchant-stock">Loading…</ul>
+  <div class="timer" id="traveling_merchant_timer"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* ───── Timestamp helpers ───── */
+const toUnix = t => {
+  if (!t) return 0;
+  if (typeof t === 'string') {
+    const ms = Date.parse(t);
+    return isNaN(ms) ? 0 : Math.floor(ms / 1000);
+  }
+  return t > 1e12 ? Math.floor(t / 1000) : t;
+};
+const toMs   = s => (s < 1e12 ? s * 1000 : s);
+
+/* ───── UI helpers ───── */
+function startTimer(endUnix, el, reload) {
+  clearInterval(el._int);
+  const endMs = toMs(endUnix);
+  const tick = () => {
+    const diff = endMs - Date.now();
+    if (diff <= 0) { clearInterval(el._int); reload(); return; }
+    const m = Math.floor(diff / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    el.textContent = `Expires in ${m}m ${s}s`;
+  };
+  tick();
+  el._int = setInterval(tick, 1000);
+}
+
+function showNoMerchant() {
+  document.getElementById('merchant-name').textContent = 'No Merchant Active';
+  document.getElementById('merchant-stock').innerHTML =
+    '<li><p>The Traveling Merchant is not here right now.</p></li>';
+  document.getElementById('traveling_merchant_timer').textContent = '';
+}
+
+/* ───── Main loader ───── */
+async function loadMerchant() {
+  const nameEl  = document.getElementById('merchant-name');
+  const listEl  = document.getElementById('merchant-stock');
+  const timerEl = document.getElementById('traveling_merchant_timer');
+
+  nameEl.textContent = 'Loading…';
+  listEl.innerHTML   = '<li><p>Loading…</p></li>';
+  timerEl.textContent = '';
+
+  let data;
+  try {
+    const res = await fetch('/api/stock');
+    if (!res.ok) throw new Error(res.status);
+    data = await res.json();
+  } catch (err) { 
+    console.warn('Fetch error:', err); 
+    showNoMerchant(); 
+    return; 
+  }
+
+  /* ── Locate merchant block ── */
+  const merch = data.travelingmerchant_stock || data.travelingMerchant_stock;
+  if (!merch || !Array.isArray(merch.stock) || merch.stock.length === 0) {
+    showNoMerchant(); 
+    return;
+  }
+
+  /* ── Determine active items ── */
+  const now = Math.floor(Date.now() / 1000);
+  const activeItems = merch.stock.filter(it => {
+    const qty   = it.quantity ?? 1;
+    const start = toUnix(it.start_date_unix || it.Date_Start || it.start_date);
+    const end   = toUnix(it.end_date_unix || it.Date_End || it.end_date);
+    const started = !start || now >= start;
+    const notEnded = !end || now < end;
+    return qty > 0 && started && notEnded;
+  });
+
+  /* ── Clear merchant if no active items ── */
+  if (activeItems.length === 0) { 
+    showNoMerchant(); 
+    return; 
+  }
+
+  /* ── Merchant name ── */
+  nameEl.textContent = merch.merchantName || merch.merchant_name || 'Traveling Merchant';
+
+  /* ── Render list ── */
+  listEl.innerHTML = '';
+  activeItems.forEach(it => {
+    const li = document.createElement('li');
+    li.classList.add('fade-in');
+    li.innerHTML = `
+      <img class="icon" src="${it.icon}" alt="${it.display_name || it.displayName} icon" />
+      <div style="flex:1">
+        <strong>${it.display_name || it.displayName}</strong> ×${it.quantity ?? 1}
+      </div>`;
+    listEl.appendChild(li);
+  });
+
+  /* ── Timer: prioritize merchant-level end time ── */
+  const merchEnd = toUnix(
+    merch.end_date_unix || merch.end_date || merch.end_duration_unix || merch.endUnix || 0
+  );
+  
+  if (merchEnd) {
+    startTimer(merchEnd, timerEl, loadMerchant);
+  } else {
+    timerEl.textContent = '';
+  }
+}
+
+/* ───── Init ───── */
+document.addEventListener('DOMContentLoaded', () => {
+  loadMerchant();
+  setInterval(loadMerchant, 60000); // Refresh every minute
+});
+</script>
+{% endblock %}
